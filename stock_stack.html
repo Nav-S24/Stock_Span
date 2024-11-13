@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Stock Span Problem</title>
+    <style>
+        /* Basic styling */
+        body { font-family: Arial, sans-serif; background-color: #2C3E50; color: #ECF0F1; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; padding: 20px; background-color: #34495E; border-radius: 8px; }
+        h1 { text-align: center; }
+        input, button { font-size: 16px; padding: 10px; margin: 5px 0; border-radius: 5px; border: none; }
+        button { background-color: #E67E22; color: #ECF0F1; cursor: pointer; }
+        button:hover { background-color: #D35400; }
+        .chart-container { margin-top: 20px; }
+        .tutorial, .volatility { background-color: #1ABC9C; padding: 10px; border-radius: 5px; margin: 10px 0; }
+        .highlight { font-weight: bold; color: #E67E22; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Enhanced Stock Span Problem</h1>
+    <div class="input-section">
+        <label for="prices">Enter Stock Prices (comma separated):</label>
+        <input type="text" id="prices" placeholder="e.g., 100, 80, 60, 70, 60, 75, 85">
+        <button onclick="calculateSpan()">Calculate Span</button>
+        <button onclick="showTutorial()">Show Tutorial</button>
+    </div>
+
+    <!-- Output sections -->
+    <div class="chart-container">
+        <canvas id="spanChart" width="400" height="200"></canvas>
+    </div>
+    <div class="volatility" id="volatility"></div>
+    <div id="result"></div>
+    <div class="tutorial" id="tutorial"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Function to calculate stock span and other features
+    function calculateSpan() {
+        const pricesInput = document.getElementById("prices").value;
+        const prices = pricesInput.split(',').map(Number);
+
+        // Validate input
+        if (!prices.length || prices.some(isNaN)) {
+            alert("Please enter valid stock prices.");
+            return;
+        }
+
+        // Stock span calculation using stack
+        let spans = [];
+        let stack = [];
+        for (let i = 0; i < prices.length; i++) {
+            while (stack.length > 0 && prices[stack[stack.length - 1]] <= prices[i]) {
+                stack.pop();
+            }
+            spans[i] = (stack.length === 0) ? (i + 1) : (i - stack[stack.length - 1]);
+            stack.push(i);
+        }
+
+        displaySpanChart(prices, spans);
+        displayTrendAnalysis(spans);
+        displayVolatilityAnalysis(prices);
+    }
+
+    // Display span chart using Chart.js
+    function displaySpanChart(prices, spans) {
+        const ctx = document.getElementById('spanChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: prices.map((_, i) => `Day ${i + 1}`),
+                datasets: [{
+                    label: 'Stock Span',
+                    data: spans,
+                    backgroundColor: spans.map(span => span > 3 ? 'rgba(231, 76, 60, 0.6)' : 'rgba(46, 204, 113, 0.6)')
+                }]
+            },
+            options: {
+                scales: {
+                    y: { beginAtZero: true },
+                    x: { beginAtZero: true }
+                }
+            }
+        });
+    }
+
+    // Display trend analysis (highlighting spans that are increasing)
+    function displayTrendAnalysis(spans) {
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '';
+        for (let i = 0; i < spans.length; i++) {
+            const trend = (i > 0 && spans[i] > spans[i - 1]) ? "⬆" : "";
+            resultDiv.innerHTML += `<p>Day ${i + 1}: Span = ${spans[i]} ${trend}</p>`;
+        }
+    }
+
+    // Display volatility analysis (calculate standard deviation)
+    function displayVolatilityAnalysis(prices) {
+        const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+        const variance = prices.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / prices.length;
+        const volatility = Math.sqrt(variance).toFixed(2);
+
+        document.getElementById('volatility').innerHTML = `Volatility: <span class="highlight">${volatility}</span>`;
+    }
+
+    // Show "What-If" Scenarios (user modifies prices to see impact on span)
+    function modifyPrice(day, newPrice) {
+        const prices = document.getElementById("prices").value.split(',').map(Number);
+        prices[day - 1] = newPrice;
+        document.getElementById("prices").value = prices.join(',');
+        calculateSpan();
+    }
+
+    // Interactive tutorial
+    function showTutorial() {
+        const tutorialDiv = document.getElementById('tutorial');
+        tutorialDiv.innerHTML = `
+            <p><strong>Interactive Tutorial:</strong></p>
+            <p>The stock span for each day is the number of consecutive days the price was less than or equal to today's price.</p>
+            <ul>
+                <li>For <span class="highlight">Day 1</span>, there's no previous day, so the span is always 1.</li>
+                <li>For <span class="highlight">Day 2</span>, compare with Day 1's price. If Day 2's price is higher, the span is 2.</li>
+                <li>Continue comparing each day's price with previous days to calculate the span.</li>
+            </ul>
+            <button onclick="modifyPrice(1, 120)">What if Day 1 was 120?</button>
+            <button onclick="modifyPrice(3, 95)">What if Day 3 was 95?</button>
+        `;
+    }
+</script>
+
+</body>
+</html>
